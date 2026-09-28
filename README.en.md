@@ -22,7 +22,7 @@ English | [简体中文](https://github.com/linbin-mk/dsh-notify/blob/main/READM
 
 - macOS 13 or later, on Apple silicon or Intel
 - Node.js `^22.19` or `>=24`
-- DeepSeek Harness `0.1.7-alpha.1` or a compatible release, with a Web profile that provides `ctx.agents`, `ctx.webServer`, and the settings service
+- DeepSeek Harness `0.1.7-rc.2` or a compatible release, with a Web profile that provides `ctx.agents`, `ctx.webServer`, and the settings service
 - Xcode Command Line Tools when building from this checkout; packed artifacts contain the universal native helper
 
 ## Install

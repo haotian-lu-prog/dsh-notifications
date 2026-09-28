@@ -22,7 +22,7 @@
 
 - Apple 芯片或 Intel 处理器的 macOS 13 或更高版本
 - Node.js `^22.19` 或 `>=24`
-- DeepSeek Harness `0.1.7-alpha.1` 或兼容版本，以及提供 `ctx.agents`、`ctx.webServer` 和设置服务的 Web profile
+- DeepSeek Harness `0.1.7-rc.2` 或兼容版本，以及提供 `ctx.agents`、`ctx.webServer` 和设置服务的 Web profile
 - 从本检出目录构建时需要 Xcode Command Line Tools；打包产物已包含通用原生辅助程序
 
 ## 安装
