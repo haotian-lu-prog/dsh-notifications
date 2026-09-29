@@ -3,11 +3,11 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
 
-export const name = 'dsh-notify'
+export const name = 'dsh-notifications'
 export const inject = ['agents', 'webServer']
 
 /** Profile entry id from `cordis.patch.yml`; it names this plugin's settings form. */
-export const ENTRY_ID = 'notify-menubar'
+export const ENTRY_ID = 'dsh-notifications'
 
 /** Live fields of the menu bar indicator; every one is editable without a restart. */
 export const Config = z.object({
@@ -17,7 +17,7 @@ export const Config = z.object({
   sweep: z.boolean().default(true).volatile(),
 })
 
-const helperPath = fileURLToPath(new URL('./native/dsh-notify-menubar', import.meta.url))
+const helperPath = fileURLToPath(new URL('./native/dsh-notifications-menubar', import.meta.url))
 const SHUTDOWN_GRACE_MS = 1_000
 
 function waitForClose(child) {
@@ -37,7 +37,7 @@ export function webClientOrigin(ctx) {
 /** Launch the package-owned AppKit process and expose its count protocol. */
 export function launchMenuBarHelper(logger, webClientOrigin, spawnProcess = spawn) {
   if (process.platform !== 'darwin') {
-    throw new Error('dsh-notify supports macOS only')
+    throw new Error('dsh-notifications supports macOS only')
   }
   accessSync(helperPath, constants.X_OK)
 
@@ -50,20 +50,20 @@ export function launchMenuBarHelper(logger, webClientOrigin, spawnProcess = spaw
 
   child.once('error', error => {
     writable = false
-    if (!closing) logger.warn(`dsh-notify: menu bar helper failed: ${String(error)}`)
+    if (!closing) logger.warn(`dsh-notifications: menu bar helper failed: ${String(error)}`)
   })
   child.stdin.on('error', error => {
     writable = false
-    if (!closing) logger.warn(`dsh-notify: menu bar helper input failed: ${String(error)}`)
+    if (!closing) logger.warn(`dsh-notifications: menu bar helper input failed: ${String(error)}`)
   })
   child.stderr.on('data', chunk => {
     const message = String(chunk).trim()
-    if (message.length > 0) logger.warn(`dsh-notify: menu bar helper: ${message}`)
+    if (message.length > 0) logger.warn(`dsh-notifications: menu bar helper: ${message}`)
   })
   child.once('exit', (code, signal) => {
     writable = false
     if (!closing) {
-      logger.warn(`dsh-notify: menu bar helper exited unexpectedly (${signal ?? `code ${String(code)}`})`)
+      logger.warn(`dsh-notifications: menu bar helper exited unexpectedly (${signal ?? `code ${String(code)}`})`)
     }
   })
 

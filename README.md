@@ -1,14 +1,14 @@
-[English](https://github.com/linbin-mk/dsh-notify/blob/main/README.en.md) | 简体中文
+[English](https://github.com/haotian-lu-prog/dsh-notifications/blob/main/README.en.md) | 简体中文
 
-# dsh-notify
+# dsh-notifications
 
-[![npm 版本](https://img.shields.io/npm/v/@linbin-mk/dsh-notify)](https://www.npmjs.com/package/@linbin-mk/dsh-notify)
-[![发布流水线](https://github.com/linbin-mk/dsh-notify/actions/workflows/publish.yml/badge.svg)](https://github.com/linbin-mk/dsh-notify/actions/workflows/publish.yml)
-[![许可证](https://img.shields.io/npm/l/@linbin-mk/dsh-notify)](LICENSE)
-[![Node](https://img.shields.io/node/v/@linbin-mk/dsh-notify)](package.json)
+[![npm 版本](https://img.shields.io/npm/v/dsh-notifications)](https://www.npmjs.com/package/dsh-notifications)
+[![发布流水线](https://github.com/haotian-lu-prog/dsh-notifications/actions/workflows/publish.yml/badge.svg)](https://github.com/haotian-lu-prog/dsh-notifications/actions/workflows/publish.yml)
+[![许可证](https://img.shields.io/npm/l/dsh-notifications)](LICENSE)
+[![Node](https://img.shields.io/node/v/dsh-notifications)](package.json)
 [![平台](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey)](#要求)
 
-`dsh-notify` 是一个适用于 macOS 的纯第三方 DeepSeek Harness 插件。它在系统菜单栏中添加一个状态项：Harness 鲸鱼标志及当前状态为 `running` 的 Agent 数量。计数为零时，菜单栏只显示鲸鱼。当已订阅事件等待用户处理时，数字改为这些事件的总数，字母用于标识事件类型：`Q` 表示提问，`S` 表示审批；因此 `2-QS` 表示各有一个提问和审批等待处理。两类订阅及扫光强化提示默认开启。点击状态项会切换到此 Harness 进程已打开的 Google Chrome 标签页，绝不会新建标签页。它的 Web Client 端会在内置设置面板中添加“通知”页面，用户无需重启 Harness 即可管理状态项及事件订阅。
+`dsh-notifications` 是一个适用于 macOS 的纯第三方 DeepSeek Harness 插件。它在系统菜单栏中添加一个状态项：Harness 鲸鱼标志及当前状态为 `running` 的 Agent 数量。计数为零时，菜单栏只显示鲸鱼。当已订阅事件等待用户处理时，数字改为这些事件的总数，字母用于标识事件类型：`Q` 表示提问，`S` 表示审批；因此 `2-QS` 表示各有一个提问和审批等待处理。两类订阅及扫光强化提示默认开启。点击状态项会切换到此 Harness 进程已打开的 Google Chrome 标签页，绝不会新建标签页。它的 Web Client 端会在内置设置面板中添加“通知”页面，用户无需重启 Harness 即可管理状态项及事件订阅。
 
 ## 功能
 
@@ -22,7 +22,7 @@
 
 - Apple 芯片或 Intel 处理器的 macOS 13 或更高版本
 - Node.js `^22.19` 或 `>=24`
-- DeepSeek Harness `0.1.7-rc.2` 或兼容版本，以及提供 `ctx.agents`、`ctx.webServer` 和设置服务的 Web profile
+- DeepSeek Harness `0.1.7-rc.2` 或 `0.2.0-rc.1`（两者均已验证），以及提供 `ctx.agents`、`ctx.webServer` 和设置服务的 Web profile
 - 从本检出目录构建时需要 Xcode Command Line Tools；打包产物已包含通用原生辅助程序
 
 ## 安装
@@ -30,9 +30,9 @@
 把已发布的包安装进自定义 Web profile。产物不含任何指向 Harness checkout 的路径依赖，`dsh.bundle` patch 会自动加入 Host 和 Client 插件行：
 
 ```sh
-dsh --profile web-notify --from-default-profile web --dump-config
-dsh plugin --profile web-notify add @linbin-mk/dsh-notify
-dsh --profile web-notify
+dsh --profile web-notifications --from-default-profile web --dump-config
+dsh plugin --profile web-notifications add dsh-notifications
+dsh --profile web-notifications
 ```
 
 改为安装本地构建的 tarball：
@@ -40,7 +40,7 @@ dsh --profile web-notify
 ```sh
 npm test
 npm pack
-dsh plugin --profile web-notify add ./linbin-mk-dsh-notify-0.4.0.tgz
+dsh plugin --profile web-notifications add ./dsh-notifications-1.0.0.tgz
 ```
 
 两种产物都已包含通用原生辅助程序，无需安装 Xcode。如果改为从 Git 检出安装，则需要 Xcode Command Line Tools：pnpm 会运行包的 `prepare` 脚本编译该辅助程序并阻止执行，直到你把 pnpm 打印的那个键加入 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds`。
@@ -48,12 +48,12 @@ dsh plugin --profile web-notify add ./linbin-mk-dsh-notify-0.4.0.tgz
 从同一个 profile 移除插件：
 
 ```sh
-dsh plugin --profile web-notify remove @linbin-mk/dsh-notify
+dsh plugin --profile web-notifications remove dsh-notifications
 ```
 
 ## 设置
 
-Host 半侧在自己的 Cordis `Config` 中声明这四个字段，并全部标记为可实时编辑（`.volatile()`）；profile 中的插件行 id `notify-menubar` 就是它的设置命名空间。浏览器半侧的内置设置页通过这些字段读写：写入经 Harness 带修订保护的设置传输落到当前 profile 的 Cordis patch，只改这些字段时 Harness 会把新值提交进正在运行的引用而不重挂插件，因此修改会立即生效，无需重启 Harness。
+Host 半侧在自己的 Cordis `Config` 中声明这四个字段，并全部标记为可实时编辑（`.volatile()`）；profile 中的插件行 id `dsh-notifications` 就是它的设置命名空间。浏览器半侧的内置设置页通过这些字段读写：写入经 Harness 带修订保护的设置传输落到当前 profile 的 Cordis patch，只改这些字段时 Harness 会把新值提交进正在运行的引用而不重挂插件，因此修改会立即生效，无需重启 Harness。
 
 | 设置 | 默认值 | 作用 |
 | --- | --- | --- |
@@ -72,14 +72,13 @@ Host 半侧在自己的 Cordis `Config` 中声明这四个字段，并全部标�
 
 ```sh
 npm test
-file native/dsh-notify-menubar
+file native/dsh-notifications-menubar
 ```
 
 构建过程会分别为 `arm64` 和 `x86_64` 编译 AppKit 辅助程序，再将两个架构合并为一个通用可执行文件。测试覆盖 Agent 计数、运行期间的启用和停用行为、Host 半侧实时配置引用与 `loader/volatile-update` 的联动、Client 插件经 `ctx.configForms` 读取配置并写回开关，以及加载随包提供的鲸鱼 SVG 且不创建状态项的 AppKit 探测。
 
 ## 常见问题
 
-- **0.2.2 之前：Web GUI 启动失败，页面显示 `Failed to load plugins`。** `0.2.0` 与 `0.2.1` 把客户端 bundle 注册成了短名 `dsh-notify`，而 Harness 按**包名**（`@linbin-mk/dsh-notify`）索引客户端模块表，两者不一致会让浏览器侧整个 GUI 起不来——Host 半侧与菜单栏此时仍然正常，所以 `--dump-config` 看起来没问题。已在 `0.2.2` 修复；升级即可，或先移除插件。
 - **刚发版后 `dsh plugin add` 报 404。** 全新版本在 registry 读路径上需要几分钟才可见；tarball、`dist-tags` 和搜索索引通常会先可用。稍后重试即可。
 - **通过镜像安装报 `ERR_PNPM_FETCH_404`。** npmmirror 等镜像同步新版本有自己的节奏。给这条命令加上 `--registry=https://registry.npmjs.org`，或等镜像同步。
 - **pnpm 拒绝或询问刚发布的版本。** 这是 pnpm 的 `minimumReleaseAge` 延迟保护。放行该包（pnpm 会记录到 `minimumReleaseAgeExclude`）或等过这个时间窗口。
@@ -87,15 +86,27 @@ file native/dsh-notify-menubar
 - **状态项根本不出现。** 先确认安装后插件行还在（这条只覆盖 Host 半侧；客户端半侧的失败只在浏览器控制台里暴露）：
 
   ```sh
-  dsh --profile web-notify --dump-config | grep -A 2 notify-menubar
+  dsh --profile web-notifications --dump-config | grep -A 2 dsh-notifications
   ```
 
 ## 生命周期与隐私
 
 停用状态项后，插件会关闭原生辅助程序并等待其退出；关闭某项订阅只会从状态项移除对应字母与计数；关闭扫光会保留所有已订阅字母。启用状态项后，插件会启动新的辅助程序，并立即发送当前设置和计数。插件只监听 `agent/status`、`agent/disposed`、`user-questions/request` 和 `approval/request`。它只通过标准输入向原生辅助程序发送非负汇总会话数、已订阅事件数、标记字母和扫光设置，不会发送会话 ID、提示词、模型输出、凭据或文件路径。卸载插件时，它会移除全部监听器，要求辅助程序退出并等待进程结束；只有在正常关闭停滞时才会终止进程。
 
+## 与上游 dsh-notify 的关系
+
+本仓库是 [linbin-mk/dsh-notify](https://github.com/linbin-mk/dsh-notify) 的社区分支（fork），基于上游 `0.4.0`。与上游的差异：
+
+- 包名由 `@linbin-mk/dsh-notify` 改为 `dsh-notifications`；插件行 id、客户端模块 id、设置命名空间与原生辅助程序名称一并对齐（包名与客户端模块 id 一致，正是 Harness 索引客户端模块时要求的形态）。
+- peer 依赖放宽为 `^0.1.7-rc.2 || ^0.2.0-rc.1`，因此 DSH `0.1.7-rc.2` 与 `0.2.0-rc.1` 都能直接安装，无需"精确版本豁免"。这两个版本之间，本插件触达的全部 `@deepseek-ai/*` 包只有 `dsh-api-remotes` 多出一行纯类型再导出，运行时 API 未变。
+- 版本号自 `1.0.0` 起算，独立于上游版本线。
+
+功能行为与上游一致。上游作者与许可证信息见 `LICENSE` 与 `NOTICE`。
+
 ## 许可证
 
 MIT —— 详见 `LICENSE`。
+
+原始实现版权归 linbin-mk 所有；本分支的修改与再发布版权归 Haotian Lu 所有。
 
 `native/whale.svg` 中的鲸鱼轮廓复制自采用 MIT 许可证的 DeepSeek Harness `FishLogo` 资源，未作修改；上游版权与许可证文本见 `NOTICE`。它作为 macOS 模板图像时，在浅色菜单栏中显示为黑色，并在深色外观下自动调整对比度。

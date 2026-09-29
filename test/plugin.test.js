@@ -53,7 +53,7 @@ function fakeHostContext(agents = []) {
     agents: { list: () => agents },
     webServer: { port: 3080 },
     logger: { warn() {} },
-    fiber: { name: 'dsh-notify' },
+    fiber: { name: 'dsh-notifications' },
     on(name, listener) {
       listeners.set(name, listener)
       return () => listeners.delete(name)
@@ -424,7 +424,7 @@ test('the settings page disables every control while the form is unavailable or 
 })
 
 test('the universal native helper loads the whale and hides a zero count', async () => {
-  const helper = fileURLToPath(new URL('../native/dsh-notify-menubar', import.meta.url))
+  const helper = fileURLToPath(new URL('../native/dsh-notifications-menubar', import.meta.url))
   const { stdout } = await execFileAsync(helper, ['--probe'])
   assert.deepEqual(JSON.parse(stdout), {
     activeTitle: '2',

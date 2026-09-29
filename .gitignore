@@ -2,3 +2,4 @@
 .native-build/
 node_modules/
 *.tgz
+.e2e/

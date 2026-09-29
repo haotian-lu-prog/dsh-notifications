@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: '@linbin-mk/dsh-notify',
+  id: 'dsh-notifications',
   factory: (require) => {
     const module = { exports: {} }
     const exports = module.exports
@@ -7,10 +7,10 @@ window.__ModuleLoader__.load({
     const { jsx, jsxs } = require('react/jsx-runtime')
     const React = require('react')
 
-    const styleId = 'dsh-notify/client.css'
+    const styleId = 'dsh-notifications/client.css'
     if (typeof document !== 'undefined' && document.querySelector(`style[data-plugin-css=${JSON.stringify(styleId)}]`) === null) {
       const tag = document.createElement('style')
-      tag.dataset.plugin = 'dsh-notify'
+      tag.dataset.plugin = 'dsh-notifications'
       tag.dataset.pluginCss = styleId
       tag.textContent = `
         .dshNotifySection{box-sizing:border-box;max-width:720px;color:var(--dsw-alias-label-primary);display:flex;flex-direction:column;gap:16px}
@@ -190,7 +190,7 @@ window.__ModuleLoader__.load({
 
     // Profile entry id from this package's cordis.patch.yml; the Host half's
     // Config is the form this page reads and writes.
-    const ENTRY_ID = 'notify-menubar'
+    const ENTRY_ID = 'dsh-notifications'
 
     const inject = ['slots', 'locale', 'connection', 'configForms']
 
@@ -200,7 +200,7 @@ window.__ModuleLoader__.load({
       const form = ctx.configForms.get(ENTRY_ID)
       ctx.effect(
         () => ctx.locale.register(namespace, dictionaries),
-        'dsh-notify: settings dictionaries',
+        'dsh-notifications: settings dictionaries',
       )
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',

@@ -1,7 +1,7 @@
 {
-  "name": "@linbin-mk/dsh-notify",
-  "version": "0.4.0",
-  "description": "Third-party macOS menu bar activity indicator for DeepSeek Harness",
+  "name": "dsh-notifications",
+  "version": "1.0.0",
+  "description": "macOS menu bar activity indicator for DeepSeek Harness (community fork of dsh-notify, compatible with DSH 0.1.7-rc.2 and 0.2.0-rc.1)",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -14,7 +14,7 @@
     "index.js",
     "client.js",
     "cordis.patch.yml",
-    "native/dsh-notify-menubar",
+    "native/dsh-notifications-menubar",
     "native/whale.svg",
     "README.md",
     "README.en.md",
@@ -52,15 +52,15 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.4",
-    "@deepseek-ai/dsh-agent": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-api-remotes": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-client-connection": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-client-locale": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-client-ui-renderer": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-client-ui-settings": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-host-webserver": "^0.1.7-rc.2",
-    "@deepseek-ai/dsh-settings": "^0.1.7-rc.2"
+    "@deepseek-ai/dsh-agent": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-api-remotes": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-connection": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-locale": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.7-rc.2 || ^0.2.0-rc.1",
+    "@deepseek-ai/dsh-settings": "^0.1.7-rc.2 || ^0.2.0-rc.1"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {
@@ -95,24 +95,34 @@
     }
   },
   "author": "linbin-mk (https://github.com/linbin-mk)",
+  "contributors": [
+    {
+      "name": "Haotian Lu",
+      "email": "haotian._.lu@icloud.com",
+      "url": "https://github.com/haotian-lu-prog"
+    }
+  ],
   "keywords": [
     "dsh",
     "dsh-plugin",
+    "dsh-notifications",
+    "dsh-notify",
     "deepseek",
     "deepseek-harness",
     "cordis",
     "macos",
+    "menu-bar",
     "menubar",
     "notifications",
     "notify"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/linbin-mk/dsh-notify.git"
+    "url": "git+https://github.com/haotian-lu-prog/dsh-notifications.git"
   },
-  "homepage": "https://github.com/linbin-mk/dsh-notify#readme",
+  "homepage": "https://github.com/haotian-lu-prog/dsh-notifications#readme",
   "bugs": {
-    "url": "https://github.com/linbin-mk/dsh-notify/issues"
+    "url": "https://github.com/haotian-lu-prog/dsh-notifications/issues"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org",

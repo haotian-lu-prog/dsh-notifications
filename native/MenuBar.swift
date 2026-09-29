@@ -179,7 +179,7 @@ private final class MenuBarDelegate: NSObject, NSApplicationDelegate {
         sweep.duration = 1.6
         sweep.repeatCount = .infinity
         sweep.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        scan.add(sweep, forKey: "dsh-notify-scan")
+        scan.add(sweep, forKey: "dsh-notifications-scan")
         scanLayer = scan
     }
 

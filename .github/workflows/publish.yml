@@ -1,11 +1,11 @@
-# Publish @linbin-mk/dsh-notify to npm from a GitHub Release.
+# Publish dsh-notifications to npm from a GitHub Release.
 #
 # Authentication uses npm trusted publishing (OIDC), so no NPM_TOKEN secret is
 # stored in this repository. The connection is configured once on npm:
 #
 #   Package → Settings → Trusted Publisher → GitHub Actions
-#     Organization or user : linbin-mk
-#     Repository           : dsh-notify
+#     Organization or user : haotian-lu-prog
+#     Repository           : dsh-notifications
 #     Workflow filename    : publish.yml
 #     Environment          : (leave empty)
 #
@@ -87,9 +87,9 @@ jobs:
         id: registry
         run: |
           version=$(node -p "require('./package.json').version")
-          if npm view "@linbin-mk/dsh-notify@$version" version >/dev/null 2>&1; then
+          if npm view "dsh-notifications@$version" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "@linbin-mk/dsh-notify@$version is already on the registry — nothing to publish"
+            echo "dsh-notifications@$version is already on the registry — nothing to publish"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi

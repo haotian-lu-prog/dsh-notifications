@@ -1,5 +1,13 @@
-dsh-notify
-Copyright (c) 2026 linbin-mk
+dsh-notifications
+Copyright (c) 2026 linbin-mk (original dsh-notify)
+Copyright (c) 2026 Haotian Lu (dsh-notifications fork and modifications)
+
+dsh-notifications is a community fork of dsh-notify
+(https://github.com/linbin-mk/dsh-notify, MIT, copyright linbin-mk). The
+original implementation, including the AppKit menu bar helper and its
+JavaScript host and client halves, comes from that project; this fork renames
+the package, aligns the entry and module identifiers, and widens the DeepSeek
+Harness peer ranges to cover 0.1.7-rc.2 and 0.2.0-rc.1.
 
 This distribution includes the third-party material listed below. Each entry
 reproduces the copyright notice and license text that its license requires.
@@ -11,7 +19,7 @@ native/whale.svg — DeepSeek Harness "FishLogo"
 The fish silhouette in native/whale.svg is reproduced from the FishLogo asset of
 DeepSeek Harness (packages/client/ui-primitives/src/FishLogo.tsx). Its SVG path
 data is byte-for-byte identical to the upstream FISH_LOGO_PATH constant, and its
-viewBox matches FISH_LOGO_VIEWBOX (23.16 x 17.04). dsh-notify uses it unmodified
+viewBox matches FISH_LOGO_VIEWBOX (23.16 x 17.04). dsh-notifications uses it unmodified
 as a macOS template image for its menu bar status item.
 
 MIT License

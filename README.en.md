@@ -1,14 +1,14 @@
-English | [简体中文](https://github.com/linbin-mk/dsh-notify/blob/main/README.md)
+English | [简体中文](https://github.com/haotian-lu-prog/dsh-notifications/blob/main/README.md)
 
-# dsh-notify
+# dsh-notifications
 
-[![npm version](https://img.shields.io/npm/v/@linbin-mk/dsh-notify)](https://www.npmjs.com/package/@linbin-mk/dsh-notify)
-[![publish workflow](https://github.com/linbin-mk/dsh-notify/actions/workflows/publish.yml/badge.svg)](https://github.com/linbin-mk/dsh-notify/actions/workflows/publish.yml)
-[![license](https://img.shields.io/npm/l/@linbin-mk/dsh-notify)](LICENSE)
-[![node](https://img.shields.io/node/v/@linbin-mk/dsh-notify)](package.json)
+[![npm version](https://img.shields.io/npm/v/dsh-notifications)](https://www.npmjs.com/package/dsh-notifications)
+[![publish workflow](https://github.com/haotian-lu-prog/dsh-notifications/actions/workflows/publish.yml/badge.svg)](https://github.com/haotian-lu-prog/dsh-notifications/actions/workflows/publish.yml)
+[![license](https://img.shields.io/npm/l/dsh-notifications)](LICENSE)
+[![node](https://img.shields.io/node/v/dsh-notifications)](package.json)
 [![platform](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey)](#requirements)
 
-`dsh-notify` is a pure third-party DeepSeek Harness bundle for macOS. It adds one status item to the system menu bar: the Harness whale mark followed by the number of live Agents whose authoritative status is `running`. When the count is zero, only the whale remains visible. While subscribed events await user action, the number becomes their total and the letters identify the event types: `Q` means a question and `S` means an approval, so `2-QS` means one of each. Both subscriptions and their sweeping attention effect default to on. Click the item to focus the open Google Chrome tab for this Harness process; it never opens a new tab. Its Web Client half contributes a Notifications page to the built-in Settings panel, where the indicator and event subscriptions can be managed without restarting Harness.
+`dsh-notifications` is a pure third-party DeepSeek Harness bundle for macOS. It adds one status item to the system menu bar: the Harness whale mark followed by the number of live Agents whose authoritative status is `running`. When the count is zero, only the whale remains visible. While subscribed events await user action, the number becomes their total and the letters identify the event types: `Q` means a question and `S` means an approval, so `2-QS` means one of each. Both subscriptions and their sweeping attention effect default to on. Click the item to focus the open Google Chrome tab for this Harness process; it never opens a new tab. Its Web Client half contributes a Notifications page to the built-in Settings panel, where the indicator and event subscriptions can be managed without restarting Harness.
 
 ## Features
 
@@ -22,7 +22,7 @@ English | [简体中文](https://github.com/linbin-mk/dsh-notify/blob/main/READM
 
 - macOS 13 or later, on Apple silicon or Intel
 - Node.js `^22.19` or `>=24`
-- DeepSeek Harness `0.1.7-rc.2` or a compatible release, with a Web profile that provides `ctx.agents`, `ctx.webServer`, and the settings service
+- DeepSeek Harness `0.1.7-rc.2` or `0.2.0-rc.1` (both verified), with a Web profile that provides `ctx.agents`, `ctx.webServer`, and the settings service
 - Xcode Command Line Tools when building from this checkout; packed artifacts contain the universal native helper
 
 ## Install
@@ -30,9 +30,9 @@ English | [简体中文](https://github.com/linbin-mk/dsh-notify/blob/main/READM
 Install the published package into a custom Web profile. The artifact contains no path dependency on a Harness checkout, and its `dsh.bundle` patch adds the Host and Client plugin rows automatically:
 
 ```sh
-dsh --profile web-notify --from-default-profile web --dump-config
-dsh plugin --profile web-notify add @linbin-mk/dsh-notify
-dsh --profile web-notify
+dsh --profile web-notifications --from-default-profile web --dump-config
+dsh plugin --profile web-notifications add dsh-notifications
+dsh --profile web-notifications
 ```
 
 To install a locally built tarball instead:
@@ -40,7 +40,7 @@ To install a locally built tarball instead:
 ```sh
 npm test
 npm pack
-dsh plugin --profile web-notify add ./linbin-mk-dsh-notify-0.4.0.tgz
+dsh plugin --profile web-notifications add ./dsh-notifications-1.0.0.tgz
 ```
 
 Either artifact already contains the universal native helper, so no Xcode installation is needed. Installing from a Git checkout does need Xcode Command Line Tools: pnpm runs the package's `prepare` script, which compiles that helper, and blocks it until the key it prints is allowlisted under `allowBuilds` in the profile's `pnpm-workspace.yaml`.
@@ -48,12 +48,12 @@ Either artifact already contains the universal native helper, so no Xcode instal
 Remove it from the same profile with:
 
 ```sh
-dsh plugin --profile web-notify remove @linbin-mk/dsh-notify
+dsh plugin --profile web-notifications remove dsh-notifications
 ```
 
 ## Settings
 
-The Host half declares the four fields in its Cordis `Config` and marks every one live-editable (`.volatile()`); the profile entry id `notify-menubar` is their settings namespace. The built-in Settings page in the browser half reads and writes those fields: a write goes through Harness's revision-fenced settings transport into the active profile's Cordis patch, and a change confined to these fields is committed into the running references without remounting the plugin, so it applies immediately without restarting Harness.
+The Host half declares the four fields in its Cordis `Config` and marks every one live-editable (`.volatile()`); the profile entry id `dsh-notifications` is their settings namespace. The built-in Settings page in the browser half reads and writes those fields: a write goes through Harness's revision-fenced settings transport into the active profile's Cordis patch, and a change confined to these fields is committed into the running references without remounting the plugin, so it applies immediately without restarting Harness.
 
 | Setting | Default | Effect |
 | --- | --- | --- |
@@ -72,14 +72,13 @@ The indicator counts the complete Agent activity interval, including consecutive
 
 ```sh
 npm test
-file native/dsh-notify-menubar
+file native/dsh-notifications-menubar
 ```
 
 The build compiles the AppKit helper for `arm64` and `x86_64`, then combines both slices into one universal executable. The tests cover Agent counting, live enable/disable ownership, the Host half's volatile Config references and their `loader/volatile-update` follow-up, the Client bundle's reads and switch writes through `ctx.configForms`, and an AppKit probe that loads the packaged whale SVG without creating a status item.
 
 ## Troubleshooting
 
-- **Before 0.2.2: the Web GUI shows `Failed to load plugins` and does not start.** Versions `0.2.0` and `0.2.1` register the client bundle under the short name `dsh-notify`, while Harness keys the client module table by **package name** (`@linbin-mk/dsh-notify`); the mismatch aborts the whole browser boot. The Host half and the menu bar keep working, so `--dump-config` looks fine. Fixed in `0.2.2`; upgrade, or remove the plugin meanwhile.
 - **`dsh plugin add` reports 404 right after a release.** A brand-new version takes a few minutes to appear on the registry read path; the tarball, `dist-tags`, and the search index usually resolve first. Retry shortly.
 - **Installing through a mirror fails with `ERR_PNPM_FETCH_404`.** Mirrors such as npmmirror sync new versions on their own schedule. Add `--registry=https://registry.npmjs.org` to that one command, or wait for the mirror.
 - **pnpm refuses or prompts for a just-released version.** That is pnpm's `minimumReleaseAge` delay. Allow the package (pnpm records it under `minimumReleaseAgeExclude`) or wait out the window.
@@ -87,15 +86,27 @@ The build compiles the AppKit helper for `arm64` and `x86_64`, then combines bot
 - **The status item never appears.** Check that the plugin row survived install (this covers the Host half only; client-half failures surface in the browser console):
 
   ```sh
-  dsh --profile web-notify --dump-config | grep -A 2 notify-menubar
+  dsh --profile web-notifications --dump-config | grep -A 2 dsh-notifications
   ```
 
 ## Lifecycle and privacy
 
 Disabling the indicator closes and awaits the native helper; disabling a subscription removes only its letter and count from the status item; disabling sweep keeps all subscribed letters visible. Enabling the indicator starts a new helper and immediately publishes the current settings and counts. The plugin listens only to `agent/status`, `agent/disposed`, `user-questions/request`, and `approval/request`. It sends the native helper non-negative aggregate session and subscribed-event counts, marker letters, and the sweeping preference over stdin; it sends no session IDs, prompts, model output, credentials, or file paths. Unloading the plugin removes all listeners, asks the helper to quit, and waits for the process to exit, escalating to termination only if graceful shutdown stalls.
 
+## Relationship to upstream dsh-notify
+
+This repository is a community fork of [linbin-mk/dsh-notify](https://github.com/linbin-mk/dsh-notify), based on upstream `0.4.0`. Differences from upstream:
+
+- The package name is `dsh-notifications` instead of `@linbin-mk/dsh-notify`; the profile entry id, client module id, settings namespace, and native helper name were aligned with it (package name and client module id agreeing is exactly the shape Harness expects when it keys the client module table).
+- Peer dependencies are widened to `^0.1.7-rc.2 || ^0.2.0-rc.1`, so both DSH `0.1.7-rc.2` and `0.2.0-rc.1` install directly with no exact-version exemption. Between those two releases, every `@deepseek-ai/*` package this plugin touches is unchanged apart from one type-only re-export added by `dsh-api-remotes`.
+- Versioning restarts at `1.0.0`, independent of the upstream version line.
+
+Behaviour matches upstream. Upstream authorship and license terms are recorded in `LICENSE` and `NOTICE`.
+
 ## License
 
 MIT — see `LICENSE`.
+
+The original implementation is copyright linbin-mk; modifications and redistribution in this fork are copyright Haotian Lu.
 
 The whale outline in `native/whale.svg` is DeepSeek Harness's MIT-licensed `FishLogo` asset, reproduced unmodified; `NOTICE` carries the upstream copyright and license text. As a macOS template image it appears black in the light menu bar and automatically changes contrast in dark appearances.
