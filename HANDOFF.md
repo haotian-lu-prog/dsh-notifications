@@ -18,16 +18,19 @@
 - 本地验证：`npm test` 13/13 通过（含原生 helper 探测）；`npm pack` 产出 72 KB tarball，内含已编译的通用二进制。
 - **端到端验证通过（真实 DSH 0.2.0-rc.1）**：用 npm 上的 `@deepseek-ai/dsh@0.2.0-rc.1` 在隔离 `DSH_HOME` + `web` 模板 profile 里装本包 tarball，**无需版本豁免、无需 `allowBuilds`**；启动无 warn/error；原生 helper 进程已常驻（Host 半侧完整跑通）；启动 payload 里客户端模块以 `id: dsh-notifications` 注册且 bundle 取回 `HTTP 200`（与包名一致，正是上游 0.2.x 事故的根因）。证据：`docs/evidence/`。
 - 署名：`LICENSE` / `NOTICE` 保留上游版权，并写明本 fork 的修改版权与来源。
-- 发布状态：GitHub 仓库已上线（public，已推送 `main`，已加 `dsh-plugin` 等 topics）；npm `1.0.0` 待发布（本机 `~/.npmrc` 的 token 已失效，`npm whoami` 返回 401，需重新 `npm login`）。
+- 发布状态：**已发布**。
+  - npm：`dsh-notifications@1.0.0`（2026-09-29 18:32 +09:00）。registry tarball 的 shasum `d149ae39b87854640354da236f77faccd1150ce8` 与本地 `npm pack` 产物**逐字节一致**；已核对包内 10 个文件、通用二进制、`cordis.patch.yml` 与 `client.js` 的 id 均为 `dsh-notifications`。
+  - GitHub：`haotian-lu-prog/dsh-notifications`（public，已加 `dsh-plugin` 等 topics）；Release `v1.0.0` 附带 asset `dsh-notifications-1.0.0.tgz`（`https://github.com/haotian-lu-prog/dsh-notifications/releases/download/v1.0.0/dsh-notifications-1.0.0.tgz`）。
+  - CI：仓库 4 次 workflow 全部 success（release→publish 一次，push→conventions 三次）。
 - dsh market 投稿：已确认投稿方式是往 `awesome-dsh-plugin/awesome-dsh-plugin` 的 `data/plugins/<owner>__<repo>.yml` **加一个文件**（不是编辑 README，README 由脚本生成），分类 `notify`；**CI 要求仓库创建满 1 天**，本仓库建于 2026-09-29 18:21 (+09:00)，故 PR 已排期到 2026-09-30 18:30。
 
 ## 下一步
 
 - [x] 给 GitHub 仓库加 `dsh-plugin` topic
 - [x] 在隔离 profile 里跑 DSH `0.2.0-rc.1` 端到端启动验证（见 `docs/evidence/`）
-- [ ] 发布 npm `dsh-notifications@1.0.0`（先 `npm login`，再 `npm publish --ignore-scripts --access public`）
-- [ ] 发布成功后建 `v1.0.0` GitHub Release，并把 `dsh-notifications-1.0.0.tgz` 作为 release asset 上传（给市场提供 `releases/download/v1.0.0/...` 的免构建安装路径）
-- [ ] 建仓满 24 小时后，提交 `data/plugins/haotian-lu-prog__dsh-notifications.yml` 并开 PR
+- [x] 发布 npm `dsh-notifications@1.0.0`
+- [x] 建 `v1.0.0` GitHub Release 并上传 tarball asset
+- [ ] 建仓满 24 小时后，提交 `data/plugins/haotian-lu-prog__dsh-notifications.yml` 并开 PR（已排期 2026-09-30 18:30）
 
 ## 未决问题
 
