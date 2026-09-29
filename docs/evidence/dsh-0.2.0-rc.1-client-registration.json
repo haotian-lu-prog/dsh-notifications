@@ -1,0 +1,1 @@
+"id":"dsh-notifications","url":"plugins/??dsh-notifications/client.js&rev=7053ad34a4d5","rev":"7053ad34a4d5","inject":["@deepseek-ai/dsh-client-connection","@deepseek-ai/dsh-client-locale","@deepseek-ai/dsh-client-ui-renderer","@deepseek-ai/dsh-client-ui-settings","@deepseek-ai/dsh-api-remotes"]}
