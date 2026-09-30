@@ -28,7 +28,9 @@
 - dsh market 投稿：已确认投稿方式是往 `awesome-dsh-plugin/awesome-dsh-plugin` 的 `data/plugins/<owner>__<repo>.yml` **加一个文件**（不是编辑 README，README 由脚本生成），分类 `notify`；**CI 要求仓库创建满 1 天**，本仓库建于 2026-09-29 18:21 (+09:00)，故 PR 已排期到 2026-09-30 18:30。
   - 投稿内容已用注册表自己的脚本**干跑验证通过**（/tmp/awesome 浅克隆）：`slugFor(url)` == 文件名；`readEntries()` 解析成功（4383 条，英中齐全）；生成器把它排进 `### Notifications & Integrations`；`node --test scripts/added-dates.test.mjs scripts/capabilities.test.mjs scripts/adopt-discussions.test.mjs` 18/18 通过；`build-site.mjs` 仅因浅克隆 + 条目未提交而报 `no added-date derivable`（真实 PR 有完整历史）。
   - 提交形态：**只加 yml**，不提交生成出来的两个 README（官方接受 yml-only，合并后由 sync-readme 在 main 上重新生成）。
-  - **PR 分支已就绪**（2026-09-29 18:50）：fork `haotian-lu-prog/awesome-dsh-plugin` 已与上游 main 同步到同一 commit `4c4167f`（不 stale），分支 `add-dsh-notifications` @ `a4cceb2` 已推送，diff 为 **+1 文件 / +6 行**（只有 `data/plugins/haotian-lu-prog__dsh-notifications.yml`）。明天只需开 PR，无需再改任何东西。
+  - **PR 已提交**（2026-09-30 18:30 +09:00）：[awesome-dsh-plugin#6220](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6220) —— head `haotian-lu-prog:add-dsh-notifications`，base `main`，diff **+6/-0、1 个文件**（仅 `data/plugins/haotian-lu-prog__dsh-notifications.yml`），`mergeable: MERGEABLE`。
+    - 分支 2026-09-29 即已推好（fork 当时与上游 main 同步在 `4c4167f`，提交 `a4cceb2`）；PR 创建时上游 main 已前进到 `c18ba4a`。三点 diff 仍只有新增文件，故未强制 rebase（也避免动另一个会话正在使用的 `/tmp/awesome` 克隆）。
+    - 时间闸门已过：注册表 `check-submission.mjs` 的 `MIN_AGE_DAYS = 1`，仓库建于 2026-09-29T09:21:12Z，PR 创建时正好 24 小时。
 
 ## 下一步
 
@@ -36,7 +38,7 @@
 - [x] 在隔离 profile 里跑 DSH `0.2.0-rc.1` 端到端启动验证（见 `docs/evidence/`）
 - [x] 发布 npm `dsh-notifications@1.0.0`
 - [x] 建 `v1.0.0` GitHub Release 并上传 tarball asset
-- [ ] 建仓满 24 小时后，提交 `data/plugins/haotian-lu-prog__dsh-notifications.yml` 并开 PR（已排期 2026-09-30 18:30）
+- [x] 建仓满 24 小时后，提交 `data/plugins/haotian-lu-prog__dsh-notifications.yml` 并开 PR（[#6220](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6220)，2026-09-30 18:30）
 
 ## 未决问题
 
