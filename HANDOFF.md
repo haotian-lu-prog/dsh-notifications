@@ -31,6 +31,7 @@
   - **PR 已提交**（2026-09-30 18:30 +09:00）：[awesome-dsh-plugin#6220](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6220) —— head `haotian-lu-prog:add-dsh-notifications`，base `main`，diff **+6/-0、1 个文件**（仅 `data/plugins/haotian-lu-prog__dsh-notifications.yml`），`mergeable: MERGEABLE`。
     - 分支 2026-09-29 即已推好（fork 当时与上游 main 同步在 `4c4167f`，提交 `a4cceb2`）；PR 创建时上游 main 已前进到 `c18ba4a`。三点 diff 仍只有新增文件，故未强制 rebase（也避免动另一个会话正在使用的 `/tmp/awesome` 克隆）。
     - 时间闸门已过：注册表 `check-submission.mjs` 的 `MIN_AGE_DAYS = 1`，仓库建于 2026-09-29T09:21:12Z，PR 创建时正好 24 小时。
+    - **CI 全绿**（2026-09-30 18:39 +09:00）：`check`（PR check：yml-only 形态、生成器、18 个纯规则测试、构建）**pass**；`Submission gate`（`dsh.bundle` 清单 + 仓库年龄 + 非归档 + 非 DSH 本体）**pass**；`mergeStateStatus: CLEAN`，`MERGEABLE`。等维护者合并，无待修项、无留言。
 
 ## 下一步
 
