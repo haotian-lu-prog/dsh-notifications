@@ -12,12 +12,14 @@
 
 ## 当前状态
 
-### v2.0.0（2026-10-02，未发布）—— 审批提醒 + 模块化重构
+### v2.0.0（2026-10-02，**已发布**）—— 审批提醒 + 模块化重构
 
 - **修的 bug**：沙箱/工具需要授权时没有任何提醒。根因不是判断错，而是"感知"错位：host 只把状态项字母改成 `S`（无声无横幅），client 半侧根本没有通知逻辑；而参考实现 `omdsh-dev/dsh-notification` 用的 `uiSession.pendingInteractions` 这个服务名在 DSH 0.2.0-rc.1 里**不存在**。
 - **新能力**：审批 / 提问 / 计划审阅 / 回合完成 / 出错五类系统通知（浏览器 `Notification`，按会话去重、可点击聚焦、支持"保持显示"），关键词规则（`-排除`、`re:` 正则、`cs:` 区分大小写），后台门控；host 侧在审批或提问到达时让原生 helper **出声 + 状态项变红闪烁**（不依赖浏览器是否打开）。
 - **架构**：host → `lib/host/{config,helper,indicator,observe}.js`；共享纯逻辑 → `lib/shared/{contract,decision}.js`（host 直接 import，client 构建期内联）；client → `lib/client/*` 片段，由 `scripts/build-client.mjs`（零依赖）合成提交进仓库的 `client.js`（`npm run check:client` 校验一致性）。原生协议升到 `protocol: 2`（新增 `alert` / `attention` 指令）。
 - **验证**：`npm test` **26/26 通过**（决策 9 + host/协议/UI/bundle 17），其中端到端行为测试直接驱动 `uiSession.sessionStatus` + `sessions.list` 断言"审批到达→恰好一条通知"；Swift `--probe` 契约测试覆盖新协议。
+- **发布**：npm `dsh-notifications@2.0.0` 已是 `latest`（registry tarball shasum `8d1680274485aa7df75ca0c2640c7dd0e3faae08` 与本地 `npm pack` **逐字节一致**）；GitHub Release `v2.0.0` 已建并附 tarball asset。首次 `npm publish` 触发账号的 **staged publishing**（`409 Cannot publish over previously staged version`），经批准后落库。
+- **端到端（隔离，真实 DSH 0.2.0-rc.1）**：装包 533ms、无 allowBuilds/无版本豁免；启动 error/warn 计数 **0**；客户端模块以 `{"id":"dsh-notifications","rev":"f0fa4cf35eab"}` 注册；bundle 取回 **HTTP 200 / 46,665 字节**且含新 runner 代码；从 registry 复装 2.0.0 成功（`lib` 随包发布）。
 - 测试期间被自己的测试抓出的两个真 bug：`Map.get` 返回 `undefined` 无法区分"未观察"与"观察到无等待"（首个审批永不通知）；跨 realm 的 `snapshot instanceof Map` 恒为假（VM 里 Map 原型不同）。
 
 ### v1.0.0（2026-09-29，已发布）—— fork、改名、兼容 0.2.0-rc.1
@@ -46,11 +48,13 @@
 ## 下一步
 
 - [x] v2 源码、构建脚本、测试（26/26）
-- [ ] 同步到 `~/dev/plugins/dsh-notifications` 并提交（工作副本在 `~/Dev/dsh/notify-v2`）
-- [ ] 真实 DSH 端到端验证 v2：装进隔离 profile，触发一次审批，确认浏览器通知 + 菜单栏出声变红
-- [ ] 更新 README（功能 / 设置表 / 结构）与 AGENTS.md 的结构段
-- [ ] 发布 `dsh-notifications@2.0.0`（npm + GitHub Release）
+- [x] 同步到 `~/dev/plugins/dsh-notifications` 并提交推送（`dda0498`；文档 `16a15c7`）
+- [x] 隔离 profile 的 DSH 0.2.0-rc.1 端到端验证（启动 / 模块注册 / bundle 200 / registry 复装）
+- [x] 更新 README（功能 / 设置表 / 结构）与 AGENTS.md 的结构段
+- [x] 发布 `dsh-notifications@2.0.0`（npm latest + GitHub Release v2.0.0）
 - [x] 给 GitHub 仓库加 `dsh-plugin` topic
+- [ ] **待用户确认**：把 desktop profile 里的 `1.0.0` 升到 `2.0.0`（升级正在使用的 profile 需要用户点头；备份 `package.json` + `cordis.patch.yml` 后可回滚）
+- [ ] 未在真实 GUI 里目视确认"审批 → 弹通知 + 出声变红"（隔离验证覆盖到 boot/bundle/协议；目视确认依赖上一条的 profile 升级）
 - [x] 在隔离 profile 里跑 DSH `0.2.0-rc.1` 端到端启动验证（见 `docs/evidence/`）
 - [x] 发布 npm `dsh-notifications@1.0.0`
 - [x] 建 `v1.0.0` GitHub Release 并上传 tarball asset
