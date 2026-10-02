@@ -7,6 +7,11 @@ private struct HelperCommand: Decodable {
     let markers: String?
     let sweep: Bool?
     let url: String?
+    // Alert commands: nudge the user the moment an attention arrives.
+    let kind: String?
+    let sound: Bool?
+    let flash: Bool?
+    let active: Bool?
 }
 
 private struct MenuBarPresentation {
@@ -22,6 +27,9 @@ private struct MenuBarPresentation {
             : "DeepSeek Harness，进行中会话数：\(count)，等待处理：\(markers)"
     }
 }
+
+/** The names the helper accepts for the attention sound, in preference order. */
+private let alertSoundNames = ["Funk", "Ping", "Glass"]
 
 private func appleScriptString(_ value: String) -> String {
     value.replacing("\\", with: "\\\\").replacing("\"", with: "\\\"")
@@ -48,11 +56,24 @@ private func chromeFocusScript(origin: String) -> String {
     """
 }
 
+/** Play the first bundled system sound this machine actually has. */
+private func playAlertSound() {
+    for name in alertSoundNames {
+        if let sound = NSSound(named: NSSound.Name(name)) {
+            sound.play()
+            return
+        }
+    }
+    NSSound.beep()
+}
+
 private final class MenuBarDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var count = 0
     private var markers = ""
     private var sweepEnabled = true
+    /** Held while at least one interaction still waits for the user. */
+    private var attention = false
     private var scanLayer: CAGradientLayer?
     private var webClientOrigin: String?
 
@@ -132,6 +153,15 @@ private final class MenuBarDelegate: NSObject, NSApplicationDelegate {
             }
             sweepEnabled = sweep
             updatePresentation()
+        case "alert":
+            // A nudge: sound now, and hold the visual attention state until the
+            // pending interaction is answered (the host releases it).
+            if command.sound != false { playAlertSound() }
+            if command.flash != false { attention = true }
+            updatePresentation()
+        case "attention":
+            attention = command.active ?? false
+            updatePresentation()
         case "url":
             guard let url = command.url,
                   let target = URL(string: url),
@@ -151,10 +181,46 @@ private final class MenuBarDelegate: NSObject, NSApplicationDelegate {
     private func updatePresentation() {
         guard let button = statusItem?.button else { return }
         let presentation = MenuBarPresentation(count: count, markers: markers)
-        button.title = presentation.title
+        if attention {
+            // Red title, because a pending approval has to be legible from
+            // across the room — the whale alone is not.
+            button.attributedTitle = NSAttributedString(
+                string: presentation.title,
+                attributes: [
+                    .foregroundColor: NSColor.systemRed,
+                    .font: NSFont.monospacedDigitSystemFont(
+                        ofSize: NSFont.systemFontSize,
+                        weight: .semibold
+                    ),
+                ]
+            )
+            button.contentTintColor = .systemRed
+        } else {
+            button.title = presentation.title
+            button.contentTintColor = nil
+        }
         button.toolTip = presentation.description
         button.setAccessibilityLabel(presentation.description)
+        updateAttention(button)
         updateScan(button)
+    }
+
+    /** Blink the item while attention is held; stop the moment it is released. */
+    private func updateAttention(_ button: NSStatusBarButton) {
+        guard let host = button.layer else { return }
+        if !attention {
+            host.removeAnimation(forKey: "dsh-notifications-blink")
+            return
+        }
+        guard host.animation(forKey: "dsh-notifications-blink") == nil else { return }
+        let pulse = CABasicAnimation(keyPath: "opacity")
+        pulse.fromValue = 1.0
+        pulse.toValue = 0.35
+        pulse.duration = 0.6
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        host.add(pulse, forKey: "dsh-notifications-blink")
     }
 
     private func updateScan(_ button: NSStatusBarButton) {
@@ -208,7 +274,7 @@ private final class MenuBarDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-private struct DshNotifyMenuBar {
+private struct DshNotificationsMenuBar {
     static func main() {
         if CommandLine.arguments.dropFirst().first == "--probe" {
             let iconURL = URL(fileURLWithPath: CommandLine.arguments[0])
@@ -223,8 +289,20 @@ private struct DshNotifyMenuBar {
                 HelperCommand.self,
                 from: Data(#"{"type":"sweep","sweep":false}"#.utf8)
             ).sweep!
+            let alertCommand = try! JSONDecoder().decode(
+                HelperCommand.self,
+                from: Data(#"{"type":"alert","kind":"approval","sound":false,"flash":true}"#.utf8)
+            )
+            let attentionCommand = try! JSONDecoder().decode(
+                HelperCommand.self,
+                from: Data(#"{"type":"attention","active":false}"#.utf8)
+            )
             let result: [String: Any] = [
                 "activeTitle": MenuBarPresentation(count: 2, markers: "").title,
+                "alertKind": alertCommand.kind!,
+                "alertSoundWireValue": alertCommand.sound!,
+                "alertsoundAvailable": alertSoundNames.contains { NSSound(named: NSSound.Name($0)) != nil },
+                "attentionWireValue": attentionCommand.active!,
                 "markerCommand": "markers",
                 "markerTitle": MenuBarPresentation(count: 2, markers: "QSS").title,
                 "markerWireValue": markerWireValue,
@@ -233,7 +311,7 @@ private struct DshNotifyMenuBar {
                     source: chromeFocusScript(origin: "http://127.0.0.1:3080")
                 ) != nil,
                 "iconLoaded": NSImage(contentsOf: iconURL) != nil,
-                "protocol": 1,
+                "protocol": 2,
                 "zeroTitle": MenuBarPresentation(count: 0, markers: "").title,
             ]
             let data = try! JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])

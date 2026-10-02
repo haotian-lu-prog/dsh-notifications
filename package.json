@@ -1,7 +1,7 @@
 {
   "name": "dsh-notifications",
-  "version": "1.0.0",
-  "description": "macOS menu bar activity indicator for DeepSeek Harness (community fork of dsh-notify, compatible with DSH 0.1.7-rc.2 and 0.2.0-rc.1)",
+  "version": "2.0.0",
+  "description": "macOS menu bar indicator and system notifications for DeepSeek Harness: alerts when a tool needs approval (including sandbox escalations), when a question waits, and when a turn finishes — community fork of dsh-notify, compatible with DSH 0.1.7-rc.2 and 0.2.0-rc.1",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -13,6 +13,7 @@
   "files": [
     "index.js",
     "client.js",
+    "lib",
     "cordis.patch.yml",
     "native/dsh-notifications-menubar",
     "native/whale.svg",
@@ -28,9 +29,11 @@
     "node": "^22.19 || >=24"
   },
   "scripts": {
+    "build:client": "node scripts/build-client.mjs",
     "build:native": "sh scripts/build-native.sh",
-    "prepare": "npm run build:native",
-    "test": "npm run build:native && node --test"
+    "prepare": "npm run build:client && npm run build:native",
+    "check:client": "node scripts/build-client.mjs --check",
+    "test": "node scripts/build-client.mjs --check && npm run build:native && node --test"
   },
   "dsh": {
     "bundle": {

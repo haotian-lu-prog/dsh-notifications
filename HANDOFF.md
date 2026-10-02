@@ -6,11 +6,21 @@
 
 - 工具：DSH
 - 分支：main
-- 开始时间：2026-09-29 18:00 (+09:00)
+- 开始时间：2026-10-02 15:00 (+09:00)
 
 > 一个仓库同一时刻只允许一个写者。交接时把上一行改成自己，并先读完下面的状态。
 
 ## 当前状态
+
+### v2.0.0（2026-10-02，未发布）—— 审批提醒 + 模块化重构
+
+- **修的 bug**：沙箱/工具需要授权时没有任何提醒。根因不是判断错，而是"感知"错位：host 只把状态项字母改成 `S`（无声无横幅），client 半侧根本没有通知逻辑；而参考实现 `omdsh-dev/dsh-notification` 用的 `uiSession.pendingInteractions` 这个服务名在 DSH 0.2.0-rc.1 里**不存在**。
+- **新能力**：审批 / 提问 / 计划审阅 / 回合完成 / 出错五类系统通知（浏览器 `Notification`，按会话去重、可点击聚焦、支持"保持显示"），关键词规则（`-排除`、`re:` 正则、`cs:` 区分大小写），后台门控；host 侧在审批或提问到达时让原生 helper **出声 + 状态项变红闪烁**（不依赖浏览器是否打开）。
+- **架构**：host → `lib/host/{config,helper,indicator,observe}.js`；共享纯逻辑 → `lib/shared/{contract,decision}.js`（host 直接 import，client 构建期内联）；client → `lib/client/*` 片段，由 `scripts/build-client.mjs`（零依赖）合成提交进仓库的 `client.js`（`npm run check:client` 校验一致性）。原生协议升到 `protocol: 2`（新增 `alert` / `attention` 指令）。
+- **验证**：`npm test` **26/26 通过**（决策 9 + host/协议/UI/bundle 17），其中端到端行为测试直接驱动 `uiSession.sessionStatus` + `sessions.list` 断言"审批到达→恰好一条通知"；Swift `--probe` 契约测试覆盖新协议。
+- 测试期间被自己的测试抓出的两个真 bug：`Map.get` 返回 `undefined` 无法区分"未观察"与"观察到无等待"（首个审批永不通知）；跨 realm 的 `snapshot instanceof Map` 恒为假（VM 里 Map 原型不同）。
+
+### v1.0.0（2026-09-29，已发布）—— fork、改名、兼容 0.2.0-rc.1
 
 - 从上游 `linbin-mk/dsh-notify` **0.4.0**（commit `179bc55`）fork，保留全部 git 历史。
 - 改名完成：npm 包名 `dsh-notifications`，profile 入口 id / `ENTRY_ID` / 客户端模块 id / 原生 helper 名（`native/dsh-notifications-menubar`）全部对齐；`client.js` 的模块 id 与包名一致，正是 Harness 索引客户端模块表要求的形态。
@@ -35,6 +45,11 @@
 
 ## 下一步
 
+- [x] v2 源码、构建脚本、测试（26/26）
+- [ ] 同步到 `~/dev/plugins/dsh-notifications` 并提交（工作副本在 `~/Dev/dsh/notify-v2`）
+- [ ] 真实 DSH 端到端验证 v2：装进隔离 profile，触发一次审批，确认浏览器通知 + 菜单栏出声变红
+- [ ] 更新 README（功能 / 设置表 / 结构）与 AGENTS.md 的结构段
+- [ ] 发布 `dsh-notifications@2.0.0`（npm + GitHub Release）
 - [x] 给 GitHub 仓库加 `dsh-plugin` topic
 - [x] 在隔离 profile 里跑 DSH `0.2.0-rc.1` 端到端启动验证（见 `docs/evidence/`）
 - [x] 发布 npm `dsh-notifications@1.0.0`

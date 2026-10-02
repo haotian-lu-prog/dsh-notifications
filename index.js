@@ -1,252 +1,35 @@
-import { constants, accessSync } from 'node:fs'
-import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import z from '@deepseek-ai/schemastery'
+/**
+ * dsh-notifications host half: the macOS menu bar indicator, and the native
+ * half of the alert that fires when the Harness needs the user.
+ *
+ * The browser half lives in `client.js` (generated from `lib/client/**` by
+ * `scripts/build-client.mjs`) and owns system notifications; this half owns the
+ * indicator and the alert nudge that works even when no browser is looking.
+ *
+ * Until DSH 0.2.0-rc.1 the alert did not exist: an approval only painted a
+ * letter into the menu bar item, which is invisible when the user is away from
+ * the machine — exactly when an approval is waiting on them.
+ */
+import { Config, ENTRY_ID, name } from './lib/host/config.js'
+import { helperPath, launchMenuBarHelper } from './lib/host/helper.js'
+import { MenuBarIndicator, publishLiveConfig } from './lib/host/indicator.js'
+import { observePendingInteractions, observeRunningAgents } from './lib/host/observe.js'
 
-export const name = 'dsh-notifications'
+export { Config, ENTRY_ID, name, helperPath, launchMenuBarHelper, MenuBarIndicator, publishLiveConfig }
+export { observePendingInteractions, observeRunningAgents }
+
+/** Host services required before load. */
 export const inject = ['agents', 'webServer']
-
-/** Profile entry id from `cordis.patch.yml`; it names this plugin's settings form. */
-export const ENTRY_ID = 'dsh-notifications'
-
-/** Live fields of the menu bar indicator; every one is editable without a restart. */
-export const Config = z.object({
-  enabled: z.boolean().default(true).volatile(),
-  questionMarkers: z.boolean().default(true).volatile(),
-  approvalMarkers: z.boolean().default(true).volatile(),
-  sweep: z.boolean().default(true).volatile(),
-})
-
-const helperPath = fileURLToPath(new URL('./native/dsh-notifications-menubar', import.meta.url))
-const SHUTDOWN_GRACE_MS = 1_000
-
-function waitForClose(child) {
-  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve()
-  return new Promise(resolve => { child.once('close', resolve) })
-}
-
-function delay(milliseconds) {
-  return new Promise(resolve => { setTimeout(resolve, milliseconds) })
-}
 
 /** Resolve the loopback origin used by this Harness process's Web client. */
 export function webClientOrigin(ctx) {
   return `http://127.0.0.1:${String(ctx.webServer.port)}`
 }
 
-/** Launch the package-owned AppKit process and expose its count protocol. */
-export function launchMenuBarHelper(logger, webClientOrigin, spawnProcess = spawn) {
-  if (process.platform !== 'darwin') {
-    throw new Error('dsh-notifications supports macOS only')
-  }
-  accessSync(helperPath, constants.X_OK)
-
-  const child = spawnProcess(helperPath, [], {
-    stdio: ['pipe', 'ignore', 'pipe'],
-    env: { LANG: process.env.LANG ?? 'en_US.UTF-8' },
-  })
-  let closing = false
-  let writable = true
-
-  child.once('error', error => {
-    writable = false
-    if (!closing) logger.warn(`dsh-notifications: menu bar helper failed: ${String(error)}`)
-  })
-  child.stdin.on('error', error => {
-    writable = false
-    if (!closing) logger.warn(`dsh-notifications: menu bar helper input failed: ${String(error)}`)
-  })
-  child.stderr.on('data', chunk => {
-    const message = String(chunk).trim()
-    if (message.length > 0) logger.warn(`dsh-notifications: menu bar helper: ${message}`)
-  })
-  child.once('exit', (code, signal) => {
-    writable = false
-    if (!closing) {
-      logger.warn(`dsh-notifications: menu bar helper exited unexpectedly (${signal ?? `code ${String(code)}`})`)
-    }
-  })
-
-  const send = message => {
-    if (!writable || child.stdin.destroyed) return
-    child.stdin.write(`${JSON.stringify(message)}\n`)
-  }
-
-  send({ type: 'url', url: webClientOrigin })
-
-  return {
-    setCount(count) {
-      send({ type: 'count', count })
-    },
-    setMarkers(markers) {
-      send({ type: 'markers', markers })
-    },
-    setSweepEnabled(enabled) {
-      send({ type: 'sweep', sweep: enabled })
-    },
-    async close() {
-      if (closing) return waitForClose(child)
-      closing = true
-      send({ type: 'quit' })
-      child.stdin.end()
-
-      const closed = waitForClose(child)
-      if (child.exitCode === null && child.signalCode === null) {
-        await Promise.race([closed, delay(SHUTDOWN_GRACE_MS)])
-      }
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
-      if (child.exitCode === null && child.signalCode === null) {
-        await Promise.race([closed, delay(SHUTDOWN_GRACE_MS)])
-      }
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-      await closed
-    },
-  }
-}
-
-/** Track the authoritative live Agent states and publish every count change. */
-export function observeRunningAgents(ctx, publish) {
-  const running = new Set(
-    ctx.agents.list().filter(agent => agent.status === 'running'),
-  )
-  let lastCount
-  const publishIfChanged = () => {
-    if (lastCount === running.size) return
-    lastCount = running.size
-    publish(lastCount)
-  }
-
-  const disposeStatus = ctx.on('agent/status', ({ agent, status }) => {
-    if (status === 'running') running.add(agent)
-    else running.delete(agent)
-    publishIfChanged()
-  })
-  const disposeAgent = ctx.on('agent/disposed', ({ agent }) => {
-    running.delete(agent)
-    publishIfChanged()
-  })
-  publishIfChanged()
-
-  return () => {
-    disposeStatus()
-    disposeAgent()
-  }
-}
-
-/** Track pending question and approval requests without claiming either waterfall. */
-export function observePendingInteractions(ctx, publish) {
-  const pending = { Q: 0, S: 0 }
-  const observe = (event, marker) => ctx.on(event, async (_request, next) => {
-    pending[marker] += 1
-    publish({ ...pending })
-    try {
-      return await next()
-    } finally {
-      pending[marker] -= 1
-      publish({ ...pending })
-    }
-  }, { global: true, prepend: true })
-  const disposeQuestion = observe('user-questions/request', 'Q')
-  const disposeApproval = observe('approval/request', 'S')
-
-  return () => {
-    disposeQuestion()
-    disposeApproval()
-  }
-}
-
-/** Own one optional helper while serialized settings changes arrive. */
-export class MenuBarIndicator {
-  constructor(logger, enabled, webClientOrigin, launch = launchMenuBarHelper, options = {}) {
-    this.logger = logger
-    this.launch = launch
-    this.webClientOrigin = webClientOrigin
-    this.runningCount = 0
-    this.markerCounts = { Q: 0, S: 0 }
-    this.questionMarkers = options.questionMarkers ?? true
-    this.approvalMarkers = options.approvalMarkers ?? true
-    this.sweep = options.sweep ?? true
-    this.desired = enabled
-    this.helper = enabled ? launch(logger, webClientOrigin) : undefined
-    this.tail = Promise.resolve()
-    this.disposed = false
-    this.publishPresentation()
-  }
-
-  setCount(count) {
-    this.runningCount = count
-    this.publishPresentation()
-  }
-
-  setMarkerCounts(counts) {
-    this.markerCounts = counts
-    this.publishPresentation()
-  }
-
-  setQuestionMarkers(enabled) {
-    this.questionMarkers = enabled
-    this.publishPresentation()
-  }
-
-  setApprovalMarkers(enabled) {
-    this.approvalMarkers = enabled
-    this.publishPresentation()
-  }
-
-  setSweepEnabled(enabled) {
-    this.sweep = enabled
-    this.publishPresentation()
-  }
-
-  publishPresentation() {
-    const markers = `${this.questionMarkers ? 'Q'.repeat(this.markerCounts.Q) : ''}${this.approvalMarkers ? 'S'.repeat(this.markerCounts.S) : ''}`
-    this.helper?.setCount(markers.length === 0 ? this.runningCount : markers.length)
-    this.helper?.setMarkers(markers)
-    this.helper?.setSweepEnabled(markers.length > 0 && this.sweep)
-  }
-
-  setEnabled(enabled) {
-    if (this.disposed) return Promise.resolve()
-    this.desired = enabled
-    const task = this.tail.catch(() => {}).then(async () => {
-      if (this.disposed) return
-      if (this.desired && this.helper === undefined) {
-        this.helper = this.launch(this.logger, this.webClientOrigin)
-        this.publishPresentation()
-      } else if (!this.desired && this.helper !== undefined) {
-        const helper = this.helper
-        this.helper = undefined
-        await helper.close()
-      }
-    })
-    this.tail = task
-    return task
-  }
-
-  async dispose() {
-    if (this.disposed) return
-    this.disposed = true
-    this.desired = false
-    await this.tail.catch(() => {})
-    if (this.helper === undefined) return
-    const helper = this.helper
-    this.helper = undefined
-    await helper.close()
-  }
-}
-
-/** Push every live Config reference into the running indicator. */
-export function publishLiveConfig(indicator, config) {
-  indicator.setQuestionMarkers(config.questionMarkers.get())
-  indicator.setApprovalMarkers(config.approvalMarkers.get())
-  indicator.setSweepEnabled(config.sweep.get())
-  indicator.setEnabled(config.enabled.get())
-}
-
 /** Mount the configurable macOS menu bar indicator for this Harness process. */
 export function apply(ctx, config) {
   // The browser half ships its own Settings page, so the automatically
-  // generated config page must not offer the same four fields twice.
+  // generated config page must not offer the same fields twice.
   ctx.inject(['settings'], (child) => {
     child.effect(() => child.settings.configure({ auto: false }, ctx.fiber))
   })
@@ -255,9 +38,17 @@ export function apply(ctx, config) {
       questionMarkers: config.questionMarkers.get(),
       approvalMarkers: config.approvalMarkers.get(),
       sweep: config.sweep.get(),
+      sound: config.sound.get(),
+      flash: config.flash.get(),
     })
     const stopObserving = observeRunningAgents(ctx, count => { indicator.setCount(count) })
-    const stopInteractions = observePendingInteractions(ctx, counts => { indicator.setMarkerCounts(counts) })
+    const stopInteractions = observePendingInteractions(
+      ctx,
+      counts => { indicator.setMarkerCounts(counts) },
+      // The nudge is the point: it fires the instant an approval or a question
+      // arrives, not when the user happens to look at the menu bar.
+      kind => { indicator.alert(kind) },
+    )
     // Volatile-only config edits are committed into these references and
     // announced on the owning fiber instead of remounting the plugin.
     const stopWatching = ctx.on('loader/volatile-update', () => { publishLiveConfig(indicator, config) })
