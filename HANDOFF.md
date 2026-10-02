@@ -6,11 +6,20 @@
 
 - 工具：DSH
 - 分支：main
-- 开始时间：2026-10-02 15:00 (+09:00)
+- 开始时间：2026-10-02 19:50 (+09:00)
 
 > 一个仓库同一时刻只允许一个写者。交接时把上一行改成自己，并先读完下面的状态。
 
 ## 当前状态
+
+### 未发布：2.0.0 的"完成通知风暴"修复（2026-10-02 19:50）
+
+- **现象**：真机 GUI 里 `任务已完成` 横幅刷屏；一次 fan-out 只 spawn 了两只 `origin: subagent` 的只读调查子代理，屏幕上却堆了十几条，标题在两条 prompt 之间交替。
+- **根因**（`lib/client/runner.js`）：`completionAdvance` 把调用方存的**包装对象** `{ unread }` 当布尔比（`previous !== true` 恒真），`fresh` 退化成"仍然 unread"；而 DSH 只在会话重新开跑或成为当前视图会话时才清 `completionUnread`，**没人点开的子代理会话永远 unread** → 任何一次状态刷新都再弹一条。`backgroundOnly` 只对当前视图会话生效，所以前台也拦不住。
+- **修复**：① `previous.unread !== true`（恢复上升沿）；② `completed` 类通知跳过 `origin === 'subagent'` 的行（**只认这个标记**：fork 也带 parent，但那是用户自己的会话）；③ 审批 / 提问 / 计划审阅**照旧**对子会话提醒。
+- **验证**：`node --test` **28/28 通过**（原 26 + 2 条新回归：`an unread completion notifies once, not once per status publish`、`a delegated child stays silent on completion while its parent and its fork report`）。两条新测试在**未修复**代码上会失败（在 `/tmp` 复制里实测 fail 2），不是空跑。用运行中的 2.0.0 bundle 复现：12 次无关状态刷新 → **26** 条通知（应 2 条）；修好后 → **2** 条（脚本 `~/Dev/dsh/.scratch/repro-completion-refire.mjs`）。
+- **真机**：已把修好的 `client.js` + `lib/client/runner.js` 覆盖进 desktop profile（`~/.dsh/profiles/desktop/node_modules/dsh-notifications/`），原文件备份在 `~/Dev/dsh/.scratch/backup/`。**这是本地覆盖，不是 registry 产物**——profile 的依赖声明仍写着 `2.0.0`。
+- **未做**：没 bump 版本、没发布、没推远端（等用户决定何时出 `2.0.1`）。
 
 ### v2.0.0（2026-10-02，**已发布**）—— 审批提醒 + 模块化重构
 
@@ -47,6 +56,10 @@
 
 ## 下一步
 
+- [x] 修复完成通知重发 + 子代理会话静默（`node --test` 28/28，含 2 条新回归）
+- [x] 真机 desktop profile 换上修好的 `client.js`（本地覆盖 + 备份，见上）
+- [ ] **发布 `dsh-notifications@2.0.1`**（bump `package.json` + npm + GitHub Release），再 `dsh plugin --profile desktop add dsh-notifications@2.0.1`，让 profile 回到 registry 来源
+- [ ] 真机目视确认：跑一次 fan-out，确认"任务已完成"横幅不再刷屏，且子代理缺审批时照旧提醒
 - [x] v2 源码、构建脚本、测试（26/26）
 - [x] 同步到 `~/dev/plugins/dsh-notifications` 并提交推送（`dda0498`；文档 `16a15c7`）
 - [x] 隔离 profile 的 DSH 0.2.0-rc.1 端到端验证（启动 / 模块注册 / bundle 200 / registry 复装）

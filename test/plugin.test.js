@@ -565,6 +565,69 @@ test('a finished turn notifies once, and a waiting approval outranks it', async 
   assert.equal(shown[1].title, 'titleQuestion', 'the question banner is the one that matters')
 })
 
+test('an unread completion notifies once, not once per status publish', async () => {
+  const { FakeNotification, shown } = recordingNotificationApi('granted')
+  const { plugin } = await loadClientBundle(FakeNotification)
+  const form = createForm({ ...CONFIG_DEFAULTS, backgroundOnly: false })
+  const sessionStatus = createStore(new Map())
+  const sessions = createSessions(['s1', 's2'])
+  plugin.apply(fakeClientContext({ form, sessionStatus, sessions }).ctx)
+
+  // s1 finishes while s2 keeps working. The flag stays set until the user opens
+  // s1, and the Harness republishes the whole status map on every unrelated
+  // change — that republish is not a new completion.
+  setStatus(sessionStatus, { s1: { completionUnread: true }, s2: { running: true } })
+  assert.equal(shown.length, 1)
+
+  setStatus(sessionStatus, { s1: { completionUnread: true }, s2: { running: false } })
+  setStatus(sessionStatus, { s1: { completionUnread: true }, s2: {} })
+  setStatus(sessionStatus, { s1: { completionUnread: true }, s2: { running: true } })
+  assert.equal(shown.length, 1, 'the flag is still set, but the rising edge is over')
+
+  // A real second completion — cleared, then set again — is news.
+  setStatus(sessionStatus, { s1: { completionUnread: false }, s2: {} })
+  setStatus(sessionStatus, { s1: { completionUnread: true }, s2: {} })
+  assert.equal(shown.length, 2)
+})
+
+test('a delegated child stays silent on completion while its parent and its fork report', async () => {
+  const { FakeNotification, shown } = recordingNotificationApi('granted')
+  const { plugin } = await loadClientBundle(FakeNotification)
+  const form = createForm({ ...CONFIG_DEFAULTS, backgroundOnly: false })
+  const sessionStatus = createStore(new Map())
+  // Two children of one fan-out, plus a fork of the user's own session. The fork
+  // carries a parent as well, so only the spawn marker may silence a row.
+  const sessions = createStore({
+    ids: ['main', 'child-a', 'child-b', 'fork'],
+    byId: {
+      main: { id: 'main', displayTitle: 'main session' },
+      'child-a': { id: 'child-a', displayTitle: '你是只读调查员。工作目录无关…', origin: 'subagent', parentId: 'main' },
+      'child-b': { id: 'child-b', displayTitle: '你是只读调查员。请只读以下…', origin: 'subagent', parentId: 'main' },
+      fork: { id: 'fork', displayTitle: 'forked session', parentId: 'main' },
+    },
+    current: 'main',
+  })
+  plugin.apply(fakeClientContext({ form, sessionStatus, sessions }).ctx)
+
+  setStatus(sessionStatus, { 'child-a': { completionUnread: true }, 'child-b': { completionUnread: true } })
+  assert.deepEqual(shown, [], "a child finishing is the parent agent's business")
+
+  setStatus(sessionStatus, { main: { completionUnread: true } })
+  assert.equal(shown.length, 1, 'the session the user owns still reports')
+  assert.equal(shown[0].title, 'titleCompleted')
+  assert.match(shown[0].tag, /^dsh-notifications-completed-main-1$/)
+
+  setStatus(sessionStatus, { fork: { completionUnread: true } })
+  assert.equal(shown.length, 2, 'a fork is the user’s own session, not a delegated child')
+  assert.match(shown[1].tag, /-fork-/)
+
+  // A child that needs the user still interrupts: that is what the plugin is for.
+  setStatus(sessionStatus, { 'child-a': { pendingInteraction: { kind: 'approval', toolName: 'bash' } } })
+  assert.equal(shown.length, 3)
+  assert.equal(shown[2].title, 'titleApproval')
+  assert.match(shown[2].tag, /-child-a-/)
+})
+
 /** Render function components down to a plain element tree. */
 function renderTree(node) {
   if (node === null || node === undefined || typeof node !== 'object') return node

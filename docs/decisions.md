@@ -57,3 +57,19 @@
 
 **代价**：设置页要自己渲染全部控件（不能靠 host 自动生成表单），并且写路径要自己守卫只读/进程内模式。
 
+## 2026-10-02 · 完成通知只认上升沿，并且对 spawn 出来的子会话静默
+
+**现象**：真机 GUI 里 "任务已完成" 横幅刷屏——一次 fan-out 只有两只 `origin: subagent` 的子会话，屏幕上却堆了十几条，标题在两条 prompt 之间交替。
+
+**根因**：`completionAdvance` 的上升沿判断把**包装对象**当布尔比：调用方存 `{ unread }`，被调方写 `previous !== true`，恒为真，于是 `fresh` 退化成"仍然 unread"。DSH 客户端只在会话**重新开跑**或**成为当前视图会话**时才清 `completionUnread`（`UiSession.observeRunning`），没人点开的子代理会话于是永远 unread —— 任何一次状态刷新（自己会话 running 翻转、列表变化）都会给它再弹一条。`backgroundOnly` 也拦不住：它只对"当前正在看的那个会话"生效。
+
+**决定**：
+
+1. 边沿从字段上读：`previous.unread !== true`（与 `pendingAdvance` 的 `previous.kind` 同形）。
+2. `completed` 类通知跳过 `origin === 'subagent'` 的行。**只认这个标记**——fork 出来的会话同样带 parent，但它是用户自己的会话，必须继续提醒。
+3. 审批 / 提问 / 计划审阅**不跳过子会话**：子代理需要授权时用户真的要作答，那正是本插件存在的理由。
+
+**依据**：客户端行由 `flattenLineage` 把 host summary 原样铺开，`origin` 与 `parentId` 都在；`session.fork` 只写 `parentSession` 不写 `origin`，所以用 `parentId` 判子会话会误杀 fork。用运行中的 2.0.0 bundle 复现：12 次无关状态刷新 → 26 条通知（应 2 条）；改两处后 → 2 条。
+
+**代价**：子代理跑完不再单独弹横幅，需要看结果时得打开父会话或那只子会话 —— 换来的是 fan-out 不再刷屏。真机 profile 里的修复是本地覆盖（非 registry 产物），要等 `2.0.1` 发布后重装才回到正常来源。
+

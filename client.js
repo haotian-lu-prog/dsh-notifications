@@ -376,7 +376,12 @@ function pendingAdvance(previous, kind) {
 /** Fold one session's unread-completion flag and report the rising edge. */
 function completionAdvance(previous, unread) {
   if (previous === undefined) return { unread, fresh: false }
-  return { unread, fresh: unread === true && previous !== true }
+  // `previous` is the wrapper the caller stored, so the edge is read off its
+  // field — the shape `pendingAdvance` already uses. Comparing the wrapper
+  // itself to `true` is always true, so `fresh` degenerates to "still unread":
+  // every later status publish then repeats the banner for that session, and a
+  // session nobody opens (a subagent) never clears the flag.
+  return { unread, fresh: unread === true && previous.unread !== true }
 }
 
 /**
@@ -410,6 +415,19 @@ function completionUnreadOf(statusMap, summary) {
   const status = statusMap.get(summary.id)
   if (status !== undefined && typeof status.completionUnread === 'boolean') return status.completionUnread
   return summary.completed === true
+}
+
+/**
+ * Whether one list row is a delegated child session rather than the user's own.
+ *
+ * The client list row spreads the host summary, so the marker a spawn records
+ * survives: `origin: 'subagent'`. Only that marker is trusted — a fork carries a
+ * parent too, but a fork is the user's own session and keeps notifying.
+ * @param summary - one row from `sessions.list`.
+ * @returns whether the session was spawned to serve another agent's turn.
+ */
+function isDelegatedSession(summary) {
+  return summary.origin === 'subagent'
 }
 
 /**
@@ -481,6 +499,11 @@ function startAttentionRunners(deps) {
       live.add(id)
       const status = statusMap.get(id)
       const title = summary.displayTitle ?? summary.title
+      // A delegated child is the parent agent's business: its turn ending is not
+      // the user's task finishing, and one fan-out would otherwise bury the
+      // screen in banners titled with the child's own prompt. Its approvals and
+      // questions still surface below — those the user really does answer.
+      const delegated = isDelegatedSession(summary)
 
       const pending = pendingAdvance(observedPending.get(id), pendingKindOf(statusMap, summary))
       // Store a wrapper, never the bare kind: `Map.get` answers undefined both
@@ -493,7 +516,7 @@ function startAttentionRunners(deps) {
 
       const completion = completionAdvance(observedCompletion.get(id), completionUnreadOf(statusMap, summary))
       observedCompletion.set(id, { unread: completion.unread })
-      if (completion.fresh) {
+      if (completion.fresh && !delegated) {
         // A session that is waiting for the user is not "finished": the
         // completion flag and a pending interaction can be set at once, and the
         // approval banner is the one that matters.
