@@ -12,16 +12,16 @@
 
 ## 当前状态
 
-### 未发布：2.0.0 的"完成通知风暴"修复（2026-10-02 19:50）
+### 2.0.1（2026-10-02，**已发布**）—— 完成通知风暴修复
 
 - **现象**：真机 GUI 里 `任务已完成` 横幅刷屏；一次 fan-out 只 spawn 了两只 `origin: subagent` 的只读调查子代理，屏幕上却堆了十几条，标题在两条 prompt 之间交替。
 - **根因**（`lib/client/runner.js`）：`completionAdvance` 把调用方存的**包装对象** `{ unread }` 当布尔比（`previous !== true` 恒真），`fresh` 退化成"仍然 unread"；而 DSH 只在会话重新开跑或成为当前视图会话时才清 `completionUnread`，**没人点开的子代理会话永远 unread** → 任何一次状态刷新都再弹一条。`backgroundOnly` 只对当前视图会话生效，所以前台也拦不住。
 - **修复**：① `previous.unread !== true`（恢复上升沿）；② `completed` 类通知跳过 `origin === 'subagent'` 的行（**只认这个标记**：fork 也带 parent，但那是用户自己的会话）；③ 审批 / 提问 / 计划审阅**照旧**对子会话提醒。
 - **验证**：`node --test` **28/28 通过**（原 26 + 2 条新回归：`an unread completion notifies once, not once per status publish`、`a delegated child stays silent on completion while its parent and its fork report`）。两条新测试在**未修复**代码上会失败（在 `/tmp` 复制里实测 fail 2），不是空跑。用运行中的 2.0.0 bundle 复现：12 次无关状态刷新 → **26** 条通知（应 2 条）；修好后 → **2** 条（脚本 `~/Dev/dsh/.scratch/repro-completion-refire.mjs`）。
-- **真机**：已把修好的 `client.js` + `lib/client/runner.js` 覆盖进 desktop profile（`~/.dsh/profiles/desktop/node_modules/dsh-notifications/`），原文件备份在 `~/Dev/dsh/.scratch/backup/`。**这是本地覆盖，不是 registry 产物**——profile 的依赖声明仍写着 `2.0.0`。
-- **发布状态（2026-10-02 20:00）**：`package.json` 已 bump 到 `2.0.1`（`2ba8d9e`），main 已推（`41b7183..2ba8d9e`），tag `v2.0.1` 已推，GitHub Release `v2.0.1` 已建并附 `dsh-notifications-2.0.1.tgz`（本地 `npm pack` shasum `447fb58f…`，包内 21 个文件、`client.js` 含修复、原生 helper 保留可执行位）。
-- **npm 卡在待批准**：本账号走 **staged publishing**，`npm publish` 只把版本放进 stage 队列等维护者 2FA 批准。2.0.1 已入队（证据：再推同版本返回 `409 Cannot publish over previously staged version "2.0.1"`），registry 上仍只有 `1.0.0` / `2.0.0`。**需要用户用 2FA 批准**后才能安装。
-- **CI 为什么一直失败**：`publish.yml` 原来跑 `npm publish`，而该包的 trusted publisher 是 **stage-only** —— registry 直接拒（PUT 返回 **404**，看起来像包不存在）。已把 workflow 改成 `npm stage publish` 并加了一段批准提示到 job summary。这也解释了 v2.0.0 那次 CI failure：2.0.0 的 dist 没有 attestations，是本地发布 + 人工批准落库的。
+- **发布**：`package.json` bump 到 `2.0.1`（`2ba8d9e`），main + tag `v2.0.1` 已推，GitHub Release `v2.0.1` 附 `dsh-notifications-2.0.1.tgz`。npm 走 **staged publishing**：先 `npm publish` 入队（返回 `409 Cannot publish over previously staged version` 是入队证据），再由用户 **2FA 批准落库**，现 `latest = 2.0.1`。
+- **完整性链条**：本地 `npm pack` = registry tarball = Release asset，三者 sha256 均为 `447fb58fef869679aa688235a283d4e2e60890d435b1782307da065b101cd9be`；包内 `client.js` sha256 `83ae2315…`、`lib/client/runner.js` `c84c2017…`、原生 helper `da31d6b9…` 与仓库逐字节一致。**这一版没有 attestations**（入队的是本地 tarball，不是 CI 的 `--provenance` 产物）；下次走 CI 的 `npm stage publish` 会带上 provenance。
+- **真机收口**：`dsh plugin --profile desktop add dsh-notifications@2.0.1` 已执行，profile 依赖回到 registry 来源（本地覆盖已随之消失）。安装前后 manifest 只差这一行；备份见 `~/Dev/dsh/.scratch/backup/`。pnpm 把 `dsh-notifications@2.0.1` 加进了 profile 的 `minimumReleaseAgeExclude`（包太新，属预期；版本变旧后可删）。
+- **CI 为什么一直失败**：`publish.yml` 原来跑 `npm publish`，而该包的 trusted publisher 是 **stage-only** —— registry 直接拒（PUT 返回 **404**，看起来像包不存在）。已把 workflow 改成 `npm stage publish` 并加了批准提示到 job summary。（v2.0.0 那次 CI failure 同理，2.0.0 也是本地发布 + 人工批准落库。）
 
 ### v2.0.0（2026-10-02，**已发布**）—— 审批提醒 + 模块化重构
 
@@ -62,9 +62,10 @@
 - [x] 真机 desktop profile 换上修好的 `client.js`（本地覆盖 + 备份，见上）
 - [x] bump `2.0.1` + 推 main/tag + 建 GitHub Release（asset `dsh-notifications-2.0.1.tgz`）
 - [x] `publish.yml` 改用 `npm stage publish`（trusted publisher 是 stage-only，`npm publish` 会被 404 拒）
-- [ ] **待用户 2FA 批准** npm stage 队列里的 `dsh-notifications@2.0.1`（npmjs.com 的 stage 队列，或 `npm login` 后 `npm stage list` + `npm stage approve <stage-id> --otp <code>`）
-- [ ] 批准后：核对 registry 产物与本地一致（`client.js` sha256 `83ae2315…`），再 `dsh plugin --profile desktop add dsh-notifications@2.0.1` 把 profile 切回 registry 来源
+- [x] 用户 2FA 批准 stage 队列里的 `dsh-notifications@2.0.1`，`latest = 2.0.1`
+- [x] 核对 registry 产物与本地逐字节一致（`client.js` `83ae2315…`、runner `c84c2017…`、helper `da31d6b9…`），并 `dsh plugin --profile desktop add dsh-notifications@2.0.1` 把 profile 切回 registry 来源
 - [ ] 真机目视确认：跑一次 fan-out，确认"任务已完成"横幅不再刷屏，且子代理缺审批时照旧提醒
+- [ ] 下次发版起走 CI：`npm stage publish` 会带 provenance（`2.0.1` 是本地入队，没有 attestations）
 - [x] v2 源码、构建脚本、测试（26/26）
 - [x] 同步到 `~/dev/plugins/dsh-notifications` 并提交推送（`dda0498`；文档 `16a15c7`）
 - [x] 隔离 profile 的 DSH 0.2.0-rc.1 端到端验证（启动 / 模块注册 / bundle 200 / registry 复装）

@@ -73,3 +73,13 @@
 
 **代价**：子代理跑完不再单独弹横幅，需要看结果时得打开父会话或那只子会话 —— 换来的是 fan-out 不再刷屏。真机 profile 里的修复是本地覆盖（非 registry 产物），要等 `2.0.1` 发布后重装才回到正常来源。
 
+## 2026-10-02 · CI 改成 `npm stage publish`，并接受"每次发版都要人工批准"
+
+**背景**：`publish.yml` 一直失败，日志停在 `npm publish` 的 **404 Not Found - PUT**，读起来像"包不存在"。真因是这个包的 trusted publisher 被限定为 **stage-only**：`npm publish` 被 registry 拒绝，只有 `npm stage publish` 会被接受，版本进 stage 队列，再由维护者用 **2FA 批准**。v2.0.0 的 dist 没有 attestations，说明它当年也是本地发布 + 人工批准落库的，CI 那条路从来没真正跑通过。
+
+**决定**：workflow 改为 `npm stage publish --ignore-scripts --provenance --access public`，并把批准指引写进 job summary；不再试图让 CI 一步到位直发。
+
+**原因**：staged publishing 是 npm 现在的推荐姿势（"reinforces proof of presence on every publish"），账号层面已经启用，绕不过去；继续用 `npm publish` 只会得到那个误导性的 404。改完之后 CI 的绿灯含义变清楚：**入队成功**，而不是"已上线"。
+
+**代价**：发布多了一步人工批准，且批准必须本人做（2FA），自动化到此为止。另外本机那枚 token 能 stage 但读不到队列（`npm stage list` 恒空），所以批准以 npmjs.com 的 stage 队列为主。`2.0.1` 是本地入队的，没有 provenance；下一次从 CI 走才能拿到 attestations。
+
