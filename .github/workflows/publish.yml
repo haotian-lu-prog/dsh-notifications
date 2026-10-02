@@ -9,6 +9,13 @@
 #     Workflow filename    : publish.yml
 #     Environment          : (leave empty)
 #
+# That connection is limited to "stage-only": this account publishes through
+# npm's stage queue, so a plain `npm publish` is rejected by the registry (a 404
+# on PUT, which reads like a missing package) and only `npm stage publish` is
+# accepted. The run therefore ends with the version *staged*: a maintainer still
+# has to approve it with 2FA — on npmjs.com's stage queue for the package, or
+# with `npm stage list` + `npm stage approve <stage-id> --otp <code>`.
+#
 # Releasing: bump "version" in package.json, commit, tag `v<version>`, push the
 # tag, then publish a GitHub Release for that tag. The tag must agree with
 # package.json, and a version that is already on the registry is skipped — so a
@@ -94,6 +101,21 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish to npm
+      - name: Stage the release on npm
         if: ${{ github.event_name == 'release' && steps.registry.outputs.published == 'false' }}
-        run: npm publish --ignore-scripts --provenance --access public
+        run: npm stage publish --ignore-scripts --provenance --access public
+
+      - name: Remind the maintainer to approve
+        if: ${{ github.event_name == 'release' && steps.registry.outputs.published == 'false' }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          {
+            echo "### dsh-notifications@$version is staged"
+            echo
+            echo "Approve it with 2FA on npmjs.com's stage queue, or locally:"
+            echo
+            echo '```'
+            echo "npm stage list"
+            echo "npm stage approve <stage-id> --otp <code>"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

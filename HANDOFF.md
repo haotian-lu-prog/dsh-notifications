@@ -19,7 +19,9 @@
 - **修复**：① `previous.unread !== true`（恢复上升沿）；② `completed` 类通知跳过 `origin === 'subagent'` 的行（**只认这个标记**：fork 也带 parent，但那是用户自己的会话）；③ 审批 / 提问 / 计划审阅**照旧**对子会话提醒。
 - **验证**：`node --test` **28/28 通过**（原 26 + 2 条新回归：`an unread completion notifies once, not once per status publish`、`a delegated child stays silent on completion while its parent and its fork report`）。两条新测试在**未修复**代码上会失败（在 `/tmp` 复制里实测 fail 2），不是空跑。用运行中的 2.0.0 bundle 复现：12 次无关状态刷新 → **26** 条通知（应 2 条）；修好后 → **2** 条（脚本 `~/Dev/dsh/.scratch/repro-completion-refire.mjs`）。
 - **真机**：已把修好的 `client.js` + `lib/client/runner.js` 覆盖进 desktop profile（`~/.dsh/profiles/desktop/node_modules/dsh-notifications/`），原文件备份在 `~/Dev/dsh/.scratch/backup/`。**这是本地覆盖，不是 registry 产物**——profile 的依赖声明仍写着 `2.0.0`。
-- **未做**：没 bump 版本、没发布、没推远端（等用户决定何时出 `2.0.1`）。
+- **发布状态（2026-10-02 20:00）**：`package.json` 已 bump 到 `2.0.1`（`2ba8d9e`），main 已推（`41b7183..2ba8d9e`），tag `v2.0.1` 已推，GitHub Release `v2.0.1` 已建并附 `dsh-notifications-2.0.1.tgz`（本地 `npm pack` shasum `447fb58f…`，包内 21 个文件、`client.js` 含修复、原生 helper 保留可执行位）。
+- **npm 卡在待批准**：本账号走 **staged publishing**，`npm publish` 只把版本放进 stage 队列等维护者 2FA 批准。2.0.1 已入队（证据：再推同版本返回 `409 Cannot publish over previously staged version "2.0.1"`），registry 上仍只有 `1.0.0` / `2.0.0`。**需要用户用 2FA 批准**后才能安装。
+- **CI 为什么一直失败**：`publish.yml` 原来跑 `npm publish`，而该包的 trusted publisher 是 **stage-only** —— registry 直接拒（PUT 返回 **404**，看起来像包不存在）。已把 workflow 改成 `npm stage publish` 并加了一段批准提示到 job summary。这也解释了 v2.0.0 那次 CI failure：2.0.0 的 dist 没有 attestations，是本地发布 + 人工批准落库的。
 
 ### v2.0.0（2026-10-02，**已发布**）—— 审批提醒 + 模块化重构
 
@@ -58,7 +60,10 @@
 
 - [x] 修复完成通知重发 + 子代理会话静默（`node --test` 28/28，含 2 条新回归）
 - [x] 真机 desktop profile 换上修好的 `client.js`（本地覆盖 + 备份，见上）
-- [ ] **发布 `dsh-notifications@2.0.1`**（bump `package.json` + npm + GitHub Release），再 `dsh plugin --profile desktop add dsh-notifications@2.0.1`，让 profile 回到 registry 来源
+- [x] bump `2.0.1` + 推 main/tag + 建 GitHub Release（asset `dsh-notifications-2.0.1.tgz`）
+- [x] `publish.yml` 改用 `npm stage publish`（trusted publisher 是 stage-only，`npm publish` 会被 404 拒）
+- [ ] **待用户 2FA 批准** npm stage 队列里的 `dsh-notifications@2.0.1`（npmjs.com 的 stage 队列，或 `npm login` 后 `npm stage list` + `npm stage approve <stage-id> --otp <code>`）
+- [ ] 批准后：核对 registry 产物与本地一致（`client.js` sha256 `83ae2315…`），再 `dsh plugin --profile desktop add dsh-notifications@2.0.1` 把 profile 切回 registry 来源
 - [ ] 真机目视确认：跑一次 fan-out，确认"任务已完成"横幅不再刷屏，且子代理缺审批时照旧提醒
 - [x] v2 源码、构建脚本、测试（26/26）
 - [x] 同步到 `~/dev/plugins/dsh-notifications` 并提交推送（`dda0498`；文档 `16a15c7`）
