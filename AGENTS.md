@@ -20,8 +20,11 @@ macOS 菜单栏活动指示器插件（DSH bundle），上游 [`linbin-mk/dsh-no
 
 ## 结构
 
-- `index.js` — Host 半侧：Cordis `Config`、Agent 计数、待处理提问/审批标记、原生 helper 生命周期
-- `client.js` — Client 半侧：内置设置面板的「通知」页（`settings.section` 插槽）
+- `index.js` — Host 入口（薄）：`apply` 接线 + 兼容性再导出
+- `lib/host/` — Host 模块：`config`（Config 模式）、`helper`（原生进程与 wire 协议）、`indicator`（菜单栏状态项 + 提醒）、`observe`（Agent 与待交互观察）
+- `lib/shared/` — 两侧共享的纯逻辑：`contract`（字段/种类/默认值）、`decision`（规则与通知判定）
+- `lib/client/` — Client 源码片段（`entry`/`runner`/`notifier`/`section`/`locales`/`styles`）
+- `client.js` — **生成物**：由 `scripts/build-client.mjs` 从 `lib/**` 合成，勿手改；`npm run check:client` 校验是否过期
 - `cordis.patch.yml` — profile patch 入口行
 - `native/MenuBar.swift` — AppKit 菜单栏 helper 源码
 - `scripts/build-native.sh` — arm64 + x86_64 分别编译后 lipo 合并为通用二进制

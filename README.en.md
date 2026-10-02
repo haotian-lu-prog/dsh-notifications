@@ -17,6 +17,10 @@ English | [简体中文](https://github.com/haotian-lu-prog/dsh-notifications/bl
 - **Sweeping attention effect** — a highlight sweeps across the status item while a subscribed event is pending.
 - **Click to focus** — clicking the item brings the Google Chrome tab already showing this Harness process to the front. It never opens a new tab.
 - **Settings without a restart** — the indicator, both subscriptions, and the sweep can be toggled live from the built-in Settings panel.
+- **Instant approval and question alerts** — when a tool asks for privileged execution, the sandbox needs a decision, the model asks a question, or a plan waits for review, a system notification appears and the menu bar item plays a sound, turns red and flashes until the event is handled.
+- **Turn outcome alerts** — finished and failed turns notify on their own switches, kept apart from "the Harness needs you".
+- **Keyword rules** — include/exclude filtering over the session title, tool names and reply text, with regular expressions and case sensitivity.
+- **Permission and self-test** — grant notification permission and send a test notification from the settings page.
 
 ## Requirements
 
@@ -61,6 +65,17 @@ The Host half declares the four fields in its Cordis `Config` and marks every on
 | `questionMarkers` | `true` | Count pending user questions and add a `Q` for each one. |
 | `approvalMarkers` | `true` | Count pending approvals and add an `S` for each one. |
 | `sweep` | `true` | Sweep the status item while a subscribed event is pending. |
+| `sound` | `true` | Play a sound when an approval or a question needs you. |
+| `flash` | `true` | Turn the item red and flash it while an event waits. |
+| `browserNotifications` | `true` | Raise system notifications at all. |
+| `notifyApproval` | `true` | Notify when an approval is needed — tool escalation and sandbox decisions, the easiest to miss. |
+| `notifyQuestion` | `true` | Notify when an answer is needed. |
+| `notifyPlanReview` | `false` | Notify when a plan waits for review. |
+| `notifyCompleted` | `true` | Notify when a turn finishes. |
+| `notifyError` | `true` | Notify when a turn fails. |
+| `backgroundOnly` | `true` | Skip the banner while you are looking at that session in a focused page. |
+| `requireInteraction` | `false` | Keep the notification on screen until dismissed. |
+| `keywords` | empty | One rule per line: a bare word includes, `-` excludes, `re:` is a regular expression, `cs:` matches case. |
 
 While at least one marker letter is visible, the number reports the subscribed pending events instead of the session count. Turning both subscriptions off restores the plain session count, and sweep then has nothing to animate.
 
